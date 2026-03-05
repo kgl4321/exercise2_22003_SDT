@@ -13,11 +13,11 @@ mdlWks = get_param(YourModel, 'ModelWorkspace');
 %Input gain value
 assignin(mdlWks, 'U_inputGain', 1)
 
-%Values in the RLC branch #1
-assignin(mdlWks, 'R_1', 150)
-assignin(mdlWks, 'C_1', 100e-9)
-assignin(mdlWks, 'L_1', 10e-3)
-assignin(mdlWks, 'Ls_1', 33e-3)
+% %Values in the RLC branch #1
+% assignin(mdlWks, 'R_1', 150)
+% assignin(mdlWks, 'C_1', 100e-9)
+% assignin(mdlWks, 'L_1', 10e-3)
+% assignin(mdlWks, 'Ls_1', 33e-3)
 
 %Values in the RLC branch #2
 % assignin(mdlWks, 'R_2', ??)
@@ -25,11 +25,162 @@ assignin(mdlWks, 'Ls_1', 33e-3)
 % assignin(mdlWks, 'L_2', 10e-3)
 % assignin(mdlWks, 'Ls_2', 33e-3)
 
-%Values in the RLC branch #3
-% ...
+C0 = 100e-9;
+R = 150;
+L = 10e-3;
+
+C = [];
+
+for i = 1:11
+    C(i) = C0*exp((i-1) / 2.8854);
+end
+
+delta = R * sqrt(C(1)/L);
+
+
+R = [];
+
+for i = 1:11
+    R(i) = delta / sqrt(C(i)/L);
+end
+
+
+
+for k = 1:11
+    assignin(mdlWks, sprintf('R_%d', k), R(k));
+    assignin(mdlWks, sprintf('C_%d', k), C(k));
+    assignin(mdlWks, sprintf('L_%d', k), L);
+    assignin(mdlWks, sprintf('Ls_%d', k),33e-3);
+end
+
 
 %% Run the simulation
 
 sim( YourModel )
 
 %% Make your plots ...
+
+t_V4    = Scope_Measurement_Branch4{2}.Values.Time;  % Time vector - Voltage U_i
+t_I4    = Scope_Measurement_Branch4{1}.Values.Time;  % Time vector - Current I_i
+V4      = Scope_Measurement_Branch4{2}.Values.Data;  % Signal 1 - Voltage U_i
+I4      = Scope_Measurement_Branch4{1}.Values.Data;  % Signal 2 - Current I_i
+
+t_V6    = Scope_Measurement_Branch6{2}.Values.Time;  % Time vector - Voltage U_i
+t_I6    = Scope_Measurement_Branch6{1}.Values.Time;  % Time vector - Current I_i
+V6      = Scope_Measurement_Branch6{2}.Values.Data;  % Signal 1 - Voltage U_i
+I6      = Scope_Measurement_Branch6{1}.Values.Data;  % Signal 2 - Current I_i  
+
+t_V8    = Scope_Measurement_Branch8{2}.Values.Time;  % Time vector - Voltage U_i
+t_I8    = Scope_Measurement_Branch8{1}.Values.Time;  % Time vector - Current I_i
+V8      = Scope_Measurement_Branch8{2}.Values.Data;  % Signal 1 - Voltage U_i
+I8      = Scope_Measurement_Branch8{1}.Values.Data;  % Signal 2 - Current I_i  
+
+tAll = t_V4;
+Vall = [V4 V6 V8];
+Iall = [I4 I6 I8];
+
+
+
+%% TIME DOMAIN PLOTS OF VOLTAGE AND CURRENT
+
+figure;
+%Plot the time-varying signal
+subplot(2,1,1)
+plot(tAll, Vall(:,1))
+hold on
+plot(tAll, Vall(:,2))
+plot(tAll, Vall(:,3))
+xlim([0 0.01])
+title('Time-varying voltage (U)')
+legend("V_4", "V_6", "V_8")
+
+subplot(2,1,2)
+plot(tAll, Iall(:,1))
+hold on
+plot(tAll, Iall(:,2))
+plot(tAll, Iall(:,3))
+xlim([0 0.01])
+xlabel('time (s)')
+title('Time-varying current (I)')
+legend("I_4", "I_6", "I_8")
+
+
+%% SPECTRUM PLOTS WITH LINEAR Y
+
+% Plot the spectum
+figure
+subplot(2,1,1)
+PlotSpectrum(Vall(:,1), tAll, true);
+hold on
+PlotSpectrum(Vall(:,2), tAll, true);
+PlotSpectrum(Vall(:,3), tAll, true);
+title('Spectrum of the voltage (U)')
+legend("V_4", "V_6", "V_8")
+
+subplot(2,1,2)
+PlotSpectrum(Iall(:,1), tAll, true);
+hold on
+PlotSpectrum(Iall(:,2), tAll, true);
+PlotSpectrum(Iall(:,3), tAll, true);
+xlabel('Frequency (Hz)')
+title('Spectrum of the current (I)')
+legend("I_4", "I_6", "I_8")
+
+
+
+
+%%
+
+Vin      = Scope_Measurement_Vin{2}.Values.Data;      % Signal 1 - Voltage U_i
+Iin      = Scope_Measurement_Vin{2}.Values.Data;
+Vin      = Vin(1:end-1);
+
+figure;
+plot(tAll, Vin)
+
+fs = length(Vin);
+fHz     = 0:1:fs-1;                 % Frequency vector for ploting
+
+figure;
+plot(fHz,fft(Vin,fs))
+
+
+
+%% PLOT TRANSFER FUNCTIONS WITH LOG Y-AXIS
+
+% Transfer function: H=Y/X (fft of impulse response)
+% Since we use the pulse stimulus we obtain the impulse response for each
+% branch. The transfer function is the FFT of the impulse response.
+
+% VOLTAGE TRANSFER FUNCTION
+figure;
+PlotSpectrum(Vall(:,1), tAll,true);
+hold on
+PlotSpectrum(Vall(:,2), tAll,true);
+PlotSpectrum(Vall(:,3), tAll,true);
+xlabel('Frequency (Hz)')
+ylabel('|H(f)|')
+title('Spectrum of Voltage Transfer function')
+set(gca, 'XScale', 'log', 'YScale', 'log')
+legend('V4','V6','V8')
+grid on
+
+
+
+
+
+% VOLTAGE TRANSFER FUNCTIOn
+figure;
+PlotSpectrum(Iall(:,1), tAll,true);
+hold on
+PlotSpectrum(Iall(:,2), tAll,true);
+PlotSpectrum(Iall(:,3), tAll,true);
+xlabel('Frequency (Hz)')
+ylabel('|H(f)|')
+title('Spectrum of Current Transfer function')
+set(gca, 'XScale', 'log', 'YScale', 'log')
+legend('V4','V6','V8')
+grid on
+
+
+

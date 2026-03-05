@@ -41,6 +41,38 @@ assignin(mdlWks, 'Ls_1', 33e-3)
 %Values in the RLC branch #7
 % ...
 
+
+
+C0 = 100e-9;
+R = 150;
+L = 10e-3;
+
+C = [];
+
+for i = 1:11
+    C(i) = C0*exp((i-1) / 2.8854);
+end
+
+delta = R * sqrt(C(1)/L);
+
+
+R = [];
+
+for i = 1:11
+    R(i) = delta / sqrt(C(i)/L);
+end
+
+
+
+for k = 1:11
+    assignin(mdlWks, sprintf('R_%d', k), R(k));
+    assignin(mdlWks, sprintf('C_%d', k), C(k));
+    assignin(mdlWks, sprintf('L_%d', k), L);
+    assignin(mdlWks, sprintf('Ls_%d', k),33e-3);
+end
+
+
+
 %% Run the simulation
 
 %%%% WARNING %%%%
