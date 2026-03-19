@@ -16,13 +16,25 @@
 
 % Timestamp: 08-03-2004 15:16
 
-function pw = RoexFilterTailPSM(gn,N0dB,fc,p,k)
+function pw = RoexFilterTailPSM(gn,N0dB,fc,p,k, type)
 
 N0 = 10^(N0dB/10);			% convert spectral density from dB to power
 
 % pw has to be a threshold (dB) value, thus take 10*log10 of the power-spectrum model output
 % insert 10*log10( ps ) here
 
-pw = 10*log10(	);
+
+if strcmpi(type,"notchednoise")
+    ps = 2*k*N0*fc * (gn + 2/p) .* exp(-p*gn);  % Threshold vals Notched Noise
+elseif strcmpi(type,"fletcher")
+    ps = 2*k*N0*fc * (2/p - exp(-p*gn) .* (2+p*gn)/p); % Threshold vals Fletchers
+else
+    fprintf("%s is not a valid type",type)
+end
+
+pw = 10*log10(ps);
 
 % eof
+end
+
+

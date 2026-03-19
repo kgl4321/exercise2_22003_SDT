@@ -15,15 +15,15 @@
 
 % Timestamp: 10-03-2004 14:00
 
-function [p,k] = RoexFilterTailPSMFit(xdata,thres,N0dB,fc)
+function [p,k] = RoexFilterTailPSMFit(xdata,thres,N0dB,fc,type)
 
 x0 = [25,0.5];                          % start with some reasonable values
 
 % create an inline function which has to be minimized:
-f = inline('sum( (RoexFilterTailPSM(xdata,N0,fc,x(1),x(2)) - thres).^2)','x','N0','fc','xdata','thres');
+f = inline('sum( (RoexFilterTailPSM(xdata,N0,fc,x(1),x(2), type) - thres).^2)','x','N0','fc','xdata','thres', 'type');
 
 % the actual fitting is done by fminsearch:
-[x, fval, exitflag] = fminsearch(f,x0,[],N0dB,fc,xdata,thres); % find the minimum
+[x, fval, exitflag] = fminsearch(f,x0,[],N0dB,fc,xdata,thres, type); % find the minimum
 if exitflag > 0,                        % function converged:
   p = x(1);                            % return p
   k = x(2);                         % and k

@@ -14,5 +14,10 @@
 function w = RoexFilter(g,p)
 % insert roex here
 
+w = (1 + p*g) .* exp(-p*g);
+
+
+end
+
 
 % eof
