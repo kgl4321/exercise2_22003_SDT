@@ -14,3 +14,14 @@ function vBMLD = ECmodel(vFreq,sigmaD,sigmaE)
 % output: vBMLD   the binaural masking level difference in dB; if vFreq
 %                 is a vector, this is also a vector
 
+nFreq = length(vFreq);
+
+% vBMLD = zeros(nFreq,1);
+
+for ff = 1:nFreq
+
+    num = 2 * exp(-vFreq(ff)^2 * sigmaD^2);
+    den = 1 + sigmaE^2 - exp(-vFreq(ff)^2 * sigmaD^2);
+    
+    vBMLD(ff) = 10*log10(1 + num/den);
+end

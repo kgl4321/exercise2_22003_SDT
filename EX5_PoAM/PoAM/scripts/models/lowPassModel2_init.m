@@ -12,7 +12,7 @@ global simwork
 
 % 4-6 kHz four-pole Butterworth Bandpass (missing)
 
-f_cut = 64;
+f_cut = 128;
 % MODIFY THE PARAMETER ABOVE ------^^^^^^^^^-------
 % It designates the cutoff of the low pass filter
 
