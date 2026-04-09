@@ -14,8 +14,7 @@
 
 
 %% PART3: BINAURAL MASKING LEVEL DIFFERENCE (BMLD)
-
-
+addpath(genpath("C:/Users/kgl07/OneDrive/Skrivebord/exercises_22003/exercise2_22003_SDT/EX6_IDaBI_2026/IDaBI"))
 [vFreq, vBMLD, vStd] = plBMLD('kl', 'group1');
 
 
