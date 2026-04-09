@@ -10,8 +10,8 @@ t = 0:1/fs:(N-1)/N; % Time vector
 
 fhigh = 4000;
 
-
-flow = [fhigh-3  fhigh-30 fhigh-300 fhigh-3000];
+bw = [3 30 300 3000];
+flow = [fhigh-bw(1)  fhigh-bw(2) fhigh-bw(3) fhigh-bw(4)];
 
 
 
@@ -23,7 +23,7 @@ end
 
 
 
-%%
+%%  GENERATE BANDPASS FILTERED NOISE (PLOT TEMPORAL WAVEFORM AND ENVELOPE)
 for bb = 1:4
     figure;
     plot(t,out(:,bb))
@@ -31,87 +31,161 @@ for bb = 1:4
     plot(t,env(:,bb))
     xlabel("Time (ms)")
     ylabel('Amplitude');
-    title(['Temporal plot of bandpass noise at ', num2str(flow(bb)), ' Hz']);
+    title(['Temporal plot of bandpass noise at bandwidth ', num2str(bw(bb)), ' Hz']);
     grid on;
 end
 
 
 
-%%
+%% COMPUTE POWER SPECTRUM AND ENVELOPE SPECTRUM
 
 
 for bb = 1:4
     for aa = 1:1000
         out = bpnoise(N, flow(bb),fhigh,N);
         
-        X = fft(out);
-    
-        % Two-sided power spectrum
-        % P2 = abs(X).^2 / N^2;
-        P2 = abs(X).^2;
-        
-        % Single-sided power spectrum
-        P1 = P2(1:floor(N/2+1));
-        P1(2:end-1) = 2*P1(2:end-1);   % double non-DC bins
+        [P1, ~] = onesided_powerspect_kl(out,fs);
         Parray(:,aa,bb) = P1;
 
 
         xHilb = hilbert(out);
-        env(:,aa,bb) = abs(xHilb);
+        env = abs(xHilb);
 
-        % Two-sided power spectrum
-        P2 = abs(env(:,aa,bb)).^2 / N^2;
-        
-        % Single-sided power spectrum
-        P1 = P2(1:floor(N/2+1));
-        P1(2:end-1) = 2*P1(2:end-1);   % double non-DC bins
-        PenvArray(:,aa,bb) = P1;
+
+        pow_X(:,aa,bb) = abs(fft(env)).^2;
 
     end
 end
-%%
 
-% Frequency vector
+meanpowX = squeeze(mean(pow_X,2));
+
+
+for ii = 1:4
+    p2 = meanpowX(:,ii) / N^2;           % Two-sided power spectrum
+    p1 = p2(1:floor(N/2+1));        % One-sided power spectrum
+    p1(2:end-1) = 2*p1(2:end-1);    % double amplitudes (except at bins DC and nyquist)
+    PenvArray(:,ii) = p1;
+end
+
+
+%% PLOT POWER SPECTRUM AND ENVELOPE SPECTRUM
+
+
+% POWER SPECTRUM
 f = (0:N/2) * (fs/N);
 
 meanP = mean(Parray,2);
 
 figure;
 for bb = 1:4
-    
-    plot(f,meanP(:,bb))
+    meanPdB(:,bb) = 10*log10(meanP(:,bb));
+    plot(f,meanPdB(:,bb))
     hold on
-    xlabel('Frequency (Hz)');
-    ylabel('Power/Frequency (dB/Hz)');
-    legend("3 Hz", "30 Hz", "300 Hz", "3000 Hz");
-
 end
+xlabel('Frequency (Hz)');
+ylabel('Power/Frequency (dB/Hz)');
+legend("3 Hz", "30 Hz", "300 Hz", "3000 Hz", 'Location', 'northwest');
+title("Power spectrum")
+xlim([0 4500])
+ylim([-50 0])
+
+
+
+% ENVELOPE POWER SPECTRUM
+figure;
+for bb = 1:4
+    plot(f,10*log10(PenvArray(:,bb)))
+    hold on
+end
+title("Envelope power spectrum");
+xlabel('Frequency (Hz)');
+ylabel('Envelope Power (dB)');
+legend("3 Hz", "30 Hz", "300 Hz", "3000 Hz", 'Location', 'northeast');
+xlim([0 1e4])
+ylim([-50 50])
+xscale log
 
 
 
 
-%%
 
-% Frequency vector
-f = (0:N/2) * (fs/N);
+%% INTRODUCE A 16 Hz MODULATION
 
-meanPenv = mean(PenvArray,2);
-meanP = mean(Parray,2);
+
+fm = 16;
+m = 1;
+
+t = linspace(0,N/fs,N);
 
 for bb = 1:4
-    figure;
-    plot(f,meanPenv(:,bb))
-    title(sprintf('Power Spectrum of Bandpass Noise at %d Hz', flow(bb)));
-    xlabel('Frequency (Hz)');
-    ylabel('Power/Frequency (dB/Hz)');
-    % if bb == 1
-    %     xlim([3800 4050])
-    % else
-    %     xlim([0 4500])
-    % end
-    
+    for aa = 1:1000
+        
+        
+        
+        
+        out = bpnoise(N, flow(bb),fhigh,N);
+        modulateout = out .* (1 + m*cos(2*pi*fm.*t)');   % modulation
 
+
+        
+        [P1, ~] = onesided_powerspect_kl(modulateout,fs);
+        Parraymodulate(:,aa,bb) = P1;
+
+
+        xHilb = hilbert(modulateout);
+        env = abs(xHilb);
+
+
+        pow_X(:,aa,bb) = abs(fft(env)).^2;
+
+    end
+end
+
+modulate_meanpowX = squeeze(mean(pow_X,2));
+
+
+for ii = 1:4
+    p2 = modulate_meanpowX(:,ii) / N^2;           % Two-sided power spectrum
+    p1 = p2(1:floor(N/2+1));        % One-sided power spectrum
+    p1(2:end-1) = 2*p1(2:end-1);    % double amplitudes (except at bins DC and nyquist)
+    PenvArraymodulate(:,ii) = p1;
 end
 
 
+%% PLOT POWER SPECTRUM AND ENVELOPE SPECTRUM
+
+
+% POWER SPECTRUM
+f = (0:N/2) * (fs/N);
+
+meanPmodulate = mean(Parraymodulate,2);
+
+figure;
+for bb = 1:4
+    meanPdBmodulate(:,bb) = 10*log10(meanPmodulate(:,bb));
+    plot(f,meanPdBmodulate(:,bb))
+    hold on
+end
+xlabel('Frequency (Hz)');
+ylabel('Power/Frequency (dB/Hz)');
+legend("3 Hz", "30 Hz", "300 Hz", "3000 Hz", 'Location', 'northwest');
+title("Power spectrum")
+xlim([0 4500])
+ylim([-50 0])
+
+
+
+% ENVELOPE POWER SPECTRUM
+figure;
+for bb = 1:4
+    plot(f,10*log10(PenvArraymodulate(:,bb)))
+    hold on
+end
+title("Envelope power spectrum (modulated 16 Hz)");
+xlabel('Frequency (Hz)');
+ylabel('Envelope Power (dB)');
+legend("3 Hz", "30 Hz", "300 Hz", "3000 Hz", 'Location', 'northeast');
+xlim([0 1e4])
+% ylim([-50 50])
+xscale log
 
